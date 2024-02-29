@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Data</title>
+</head>
+<body>
+    <h1>JSON Data</h1>
+    <input id="searchInput" type="text" placeholder="Search by facility name">
+    <button id="searchButton">Search</button>
+    <button id="loadButton">Load All</button>
+    <table id="content"></table>
+    <pre id="apiData"></pre>
+    <p id="pidDisplay"></p>
+    <script>
+        function loadData(filterFunction) {
+            return fetch('./facilities.json')
+            .then(response => response.json())
+            .then(data => {
+                // Transform the data into an array of objects
+                var transformedData = Object.keys(data).reduce((result, key) => {
+                    Object.keys(data[key]).forEach(index => {
+                        result[index] = result[index] || {};
+                        result[index][key] = data[key][index];
+                    });
+                    return result;
+                }, []);
+                // Filter the data if a filter function is provided
+                var filteredData = filterFunction ? transformedData.filter(filterFunction) : transformedData;
+                // Create a table from the filtered data
+                var table = '';
+                var keys = Object.keys(filteredData[0]);
+                table += '<tr>';
+                keys.forEach(key => table += '<th>' + key + '</th>');
+                table += '</tr>';
+                filteredData.forEach(item => {
+                    table += '<tr>';
+                    keys.forEach(key => table += '<td>' + item[key] + '</td>');
+                    table += '</tr>';
+                });
+                document.getElementById('content').innerHTML = table;
+                return filteredData;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function search() {
+            var searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            loadData(item => item.FacilityName.toLowerCase() === searchTerm)
+            .then(filteredData => {
+                if (filteredData.length > 0) {
+                    var pid = filteredData[0].PID;
+                    document.getElementById('pidDisplay').textContent = pid; //checking if correct p_id
+                    console.log('About to make fetch request, pid:', pid);   //check
+                    fetch('https://ofmpub.epa.gov/frs_public2/dfr_rest_services.get_dfr?p_id='+pid) 
+                    .then(response => {
+                        console.log('Response',response);    //check
+                        if (!response.ok) {
+                            throw new Error('HTTP error ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(dfrData => {
+                        document.getElementById('apiData').textContent = JSON.stringify(dfrData, null, 2);
+                    })
+                    .catch(error => console.error('Error:', error));
+                }
+            });
+        }
+
+        document.getElementById('searchButton').addEventListener('click', search);
+
+        document.getElementById('loadButton').addEventListener('click', function() {
+            loadData();
+        });
+
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.keyCode === 13) {
+                search();
+            }
+        });
+    </script>
+</body>
+</html>
