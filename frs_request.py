@@ -22,7 +22,7 @@ response = requests.get(currURL)
 # store the response into a JSON file
 data = response.json()
 
-with open('./facilities.json', 'w') as f:
+with open('./facilities_raw.json', 'w') as f:
     json.dump(data, f) 
 
 

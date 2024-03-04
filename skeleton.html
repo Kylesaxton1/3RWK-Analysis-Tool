@@ -51,13 +51,13 @@
                     var pid = filteredData[0].PID;
                     document.getElementById('pidDisplay').textContent = pid; //checking if correct p_id
                     console.log('About to make fetch request, pid:', pid);   //check
-                    fetch('https://ofmpub.epa.gov/frs_public2/dfr_rest_services.get_dfr?p_id='+pid) 
+                    fetch('https://echodata.epa.gov/echo/eff_rest_services.get_effluent_chart?p_id='+pid) 
                     .then(response => {
                         console.log('Response',response);    //check
                         if (!response.ok) {
                             throw new Error('HTTP error ' + response.status);
                         }
-                        return response.json();
+                        return response.text();
                     })
                     .then(dfrData => {
                         document.getElementById('apiData').textContent = JSON.stringify(dfrData, null, 2);
