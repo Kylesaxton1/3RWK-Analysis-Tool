@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Data</title>
+    <style>
+        h1 {
+            color: white;
+            text-align: center;
+        }
+       #apiData{
+            color: black;
+        }
+        #content {
+            background-color:rgb(34, 34, 106);
+            color: white;
+        }
+        body{
+            background-color:lightblue;
+        }
+        button {
+            background-color:rgb(34, 34, 106);
+            color: white;
+        }
+        #loadButton{
+            float: right; 
+        }
+    </style>
+</head>
+<body>
+    <h1>3RWK-Analysis-Tool</h1>
+    <input id="searchInput" type="text" placeholder="Search by facility name">
+    <button id="searchButton">Search</button> 
+    <button id="loadButton">Load All</button>
+    <table id="content"></table>
+    <pre id="apiData"></pre>
+    <pre id="permFeatData"></pre>
+    <p id="pidDisplay"></p>
+    
+    <script>
+        function loadData(filterFunction) {
+            return fetch('./facilities.json')
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    // Transform the data into an array of objects
+                    var transformedData = Object.keys(data).reduce(function(result, key) { //creates an array data[key] of keys in data object using object.keys then using .reduce it puts all the keys into result
+                        Object.keys(data[key]).forEach(function(index) { //this creates an array of the keys in the array created above
+                            result[index] = result[index] || {};  //creates an object for for each new result
+                            result[index][key] = data[key][index];  //this sets the  key property of the result[index] object to the value of data[key][index]
+                        });
+                        return result; //the returned result is the data object new stored in the result object
+                    }, []);
+                    // this line adds the option to filter the data based off any filter function we might want to make and use
+                    var filteredData = filterFunction ? transformedData.filter(filterFunction) : transformedData;//if not filter function is provided it will used transformed data as is
+                   
+                    // Creating a table from our filtered data
+                    var table = ''; //initializes table
+                    var keys = Object.keys(filteredData[0]); //starts at beginning of filtered data array to get keys, used as column titles 
+                    table += '<tr>';
+                    keys.forEach(function(key) {    //adds each key in data to the table header row, one in each column
+                        table += '<th>' + key + '</th>';
+                    });
+                    table += '</tr>';
+                    filteredData.forEach(function(item) { //add a new row for each item in the data
+                        table += '<tr>';
+                        keys.forEach(function(key) {      //add the key into the cell in its correct row
+                            table += '<td>' + item[key] + '</td>';
+                        });
+                        table += '</tr>';
+                    });
+                    
+                    document.getElementById('content').innerHTML = table;   //this line inserts the table into the html
+                    return filteredData;
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                });
+        }
+
+    function search() {
+        var searchTerm = document.getElementById('searchInput').value.toLowerCase(); //take input and change to lowercase to help with searching
+        loadData(function(item) {
+            return item.FacilityName.toLowerCase() === searchTerm; //take item and check if its facility name matches the search term
+        })
+        .then(function(filteredData) {
+            if (filteredData.length > 0) {  //just a check to make sure the data isnt empty
+                var pid = filteredData[0].PID; //get the pid of the matching item and store it in pid variable
+                //document.getElementById('pidDisplay').textContent = pid; //this is for printing the pid, its no longer nessecary
+                console.log('About to make fetch request, pid:', pid);   //this was a check to see if the request was failing or if the issue was before the request
+                fetch('https://echodata.epa.gov/echo/eff_rest_services.get_effluent_chart?p_id='+pid) //call api with correct pid appended
+                .then(function(response) {    //response is now the response from the api call
+                    console.log('Response',response);    //this is another check to see if the request is failing
+                    if (!response.ok) {  //error thrown if response is not successful
+                        throw new Error('HTTP error ' + response.status); 
+                    }
+                    return response.text(); //this resolves the response for html
+                })
+                .then(function(dfrData) {
+                    var jsonStr = dfrData.slice(9, -3);   //this removes the opening and closing text from the api response
+                    var data = JSON.parse(jsonStr);    ///this converts the api response to a javascript object
+
+                    var table = '<table>';   //creates the new table
+                    var permfeats = '<table>';
+                    for (var key in data.Results) {   //for each key in the results         
+                        if (data.Results.hasOwnProperty(key)) { //get data stored in key 
+                            var value = data.Results[key];      //assign key data to value
+                            var permval = '';
+                            var featval = '';
+                            // this block of code is currently not doing much at all. I want to check if the last element in the api reutrn has nested data, but i am not finding anything yet
+                            if (typeof value === 'object' && value !== null) {  //if the element is an object it can hold nested data   
+                                if (Object.keys(value).length === 0) {  //empty nested data is no data
+                                    console.log('No nested data in property "' + key + '".');
+                                    value = '';
+                                } else {
+                                    console.log('Nested data found in property "' + key + '":', value);//this would just print the data to the console, a test
+                                    //console.log('trying the length...',Object.keys(value).length)
+                                    console.log("trying accessing....", value);
+                                    for(let i = 0; i < value.length; i++){
+                                        console.log(value[i])
+                                    }
+                                    permval = value;
+                                    value = JSON.stringify(value, null, 2); //this value would theorietically hold the nested data I think edit: YES!!
+                                }
+                            }
+                            console.log("curr key: ",key);
+                            // if key == ... filter out 
+                            if(key != "Message" && key != "PermFeatures"){
+                                table += '<tr><th>' + key + '</th><td>' + value + '</td></tr>'; //this adds the values and keys to the table
+                            }
+                            if(key == "PermFeatures" && value != ''){
+                                for(let i = 0; i < permval.length; i++){
+                                    // console.log(permval[i])
+                                    for(pkey in permval[i]){
+                                        console.log("perm key: ", pkey);
+                                        featval = (permval[i])[pkey];
+                                        if(pkey != "Parameters"){
+                                            featval = JSON.stringify(featval, null, 2);
+                                            permfeats += '<tr><th>' + pkey + '</th><td>' + featval + '</td></tr>';
+                                        }
+                                        else{
+                                            // console.log("he")
+                                            for(let idx = 0; idx < featval.length;idx++){
+                                                console.log("feat key: ", featval[idx]);
+                                                for(prkey in featval[idx]){
+                                                    if(prkey != "DischargeMonitoringReports"){
+                                                        permfeats += '<tr><th>' + prkey + '</th><td>' + featval[idx][prkey] + '</td></tr>';
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                document.getElementById('permFeatData').innerHTML = permfeats; 
+                            }
+                            
+                        }
+                    }
+                    table += '</table>';
+
+                    document.getElementById('apiData').innerHTML = table;   //this put the table on the html doc
+                })
+                .catch(function(error) {        //handles any errors
+                    console.error('Error:', error);
+                });
+            }
+        });
+    }
+
+        document.getElementById('searchButton').addEventListener('click', search);  //these add the listeners for clicks,search button
+
+        document.getElementById('loadButton').addEventListener('click', function() {//these add the listeners for clicks,load all button
+            loadData();
+        });
+
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {  //allows pressing enter to also search
+            if (e.keyCode === 13) {
+                search();
+            }
+        });
+    </script>
+</body>
+</html>

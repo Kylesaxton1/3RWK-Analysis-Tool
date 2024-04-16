@@ -1,0 +1,33 @@
+h1 {
+    color: white;
+    text-align: center;
+}
+#permFeatData{
+    color: black;
+}
+#content {
+    color: black;
+}
+body{
+    background-color:lightblue;
+    font-size: smaller;
+}
+button {
+    background-color:rgb(34, 34, 106);
+    color: white;
+}
+#listButton{
+    float: right; 
+}
+.listBox {
+     
+    padding: 20px; 
+    width: 50%;
+    margin: 0 auto; 
+    
+}
+/* .featureBox{
+    float: right;
+    border: 5px solid;
+
+} */
