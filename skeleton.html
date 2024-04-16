@@ -126,8 +126,7 @@
                             console.log("curr key: ",key);
                             // if key == ... filter out 
                             if(key != "Message" && key != "PermFeatures"){
-                                table += '<tr><th>' + key + '</th><td>' + value + '</td></tr>'; //this adds the values and keys to the table
-                            }
+                                table += '<tr><th class="tableKey">' + key + '</th><td class="tableValue">' + value + '</td></tr>';                            }
                             if(key == "PermFeatures" && value != ''){
                                 console.log(permval)
                                 const table = document.body.appendChild(document.createElement('table'));

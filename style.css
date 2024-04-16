@@ -1,6 +1,7 @@
 h1 {
-    color: white;
+    color: rgb(34,34,106);
     text-align: center;
+    font-size: 60px;
 }
 #permFeatData{
     color: black;
@@ -31,3 +32,14 @@ button {
     border: 5px solid;
 
 } */
+#apiData {
+    border: 10px solid white;
+    font-size: 20px;
+    margin: 50px auto 0;
+    width: 50%;
+    color: rgb(34,34,106);
+    overflow: auto;
+}
+.tableKey {
+    padding-right: 100px; 
+}
