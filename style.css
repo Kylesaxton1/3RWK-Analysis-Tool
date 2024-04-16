@@ -43,3 +43,20 @@ button {
 .tableKey {
     padding-right: 100px; 
 }
+.permFeaturesTable{
+    border: 5px solid white;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 15px;
+}
+
+.permFeaturesTable td{
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+}
+.permFeaturesTable tr{
+    border-bottom: 1px solid black;
+}
+.permFeaturesTable tr:last-child {
+    border-bottom: none;
+}

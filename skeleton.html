@@ -130,6 +130,7 @@
                             if(key == "PermFeatures" && value != ''){
                                 console.log(permval)
                                 const table = document.body.appendChild(document.createElement('table'));
+                                table.className= 'permFeaturesTable';
                                 const thead = table.appendChild(document.createElement('thead'));
                                 const outtr = thead.appendChild(document.createElement('tr'));
                                 const columnTexts = Object.keys(permval[0]);
