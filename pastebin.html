@@ -2,41 +2,26 @@
 <html>
 <head>
     <title>JSON Data</title>
-    <style>
-        h1 {
-            color: white;
-            text-align: center;
-        }
-       #apiData{
-            color: black;
-        }
-        #content {
-            background-color:rgb(34, 34, 106);
-            color: white;
-        }
-        body{
-            background-color:lightblue;
-        }
-        button {
-            background-color:rgb(34, 34, 106);
-            color: white;
-        }
-        #loadButton{
-            float: right; 
-        }
-    </style>
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
     <h1>3RWK-Analysis-Tool</h1>
     <input id="searchInput" type="text" placeholder="Search by facility name">
     <button id="searchButton">Search</button> 
-    <button id="loadButton">Load All</button>
+    <button id="listButton">List All Facilities</button>
+    
     <table id="content"></table>
+    
+    
     <pre id="apiData"></pre>
-    <pre id="permFeatData"></pre>
+    <!-- <pre id="permFeatData"></pre> -->
+    <div id="permFeatData"></div>
     <p id="pidDisplay"></p>
     
     <script>
+        window.onload = function(){
+            loadData();
+        }
         function loadData(filterFunction) {
             return fetch('./facilities.json')
                 .then(function(response) {
@@ -70,7 +55,7 @@
                         table += '</tr>';
                     });
                     
-                    document.getElementById('content').innerHTML = table;   //this line inserts the table into the html
+                    //document.getElementById('content').innerHTML = table;   //this line inserts the table into the html
                     return filteredData;
                 })
                 .catch(function(error) {
@@ -78,7 +63,25 @@
                 });
         }
 
+    function listData(data) {
+        // Extract the facility names
+        var facilityNames = data.map(function(item) {
+            return item.FacilityName;
+        });
+    
+        // Create a list from the facility names
+        var list = '';
+        facilityNames.forEach(function(name) {
+            list += '<li>' + name + '</li>';
+        });
+    
+        // Add the list to the page along with the title and an outline
+        document.getElementById('content').innerHTML = '<div class="listBox"><h2>List of all Facilities</h2><ul>' + list + '</ul></div>';
+    }
+    
+    
     function search() {
+        document.getElementById('content').innerHTML = '';  //resets innerhtml if list data has been already called
         var searchTerm = document.getElementById('searchInput').value.toLowerCase(); //take input and change to lowercase to help with searching
         loadData(function(item) {
             return item.FacilityName.toLowerCase() === searchTerm; //take item and check if its facility name matches the search term
@@ -99,9 +102,10 @@
                 .then(function(dfrData) {
                     var jsonStr = dfrData.slice(9, -3);   //this removes the opening and closing text from the api response
                     var data = JSON.parse(jsonStr);    ///this converts the api response to a javascript object
-
+                    if(document.getElementById("dynTable") != null){
+                        document.getElementById("dynTable").remove();
+                    }
                     var table = '<table>';   //creates the new table
-                    var permfeats = '<table>';
                     for (var key in data.Results) {   //for each key in the results         
                         if (data.Results.hasOwnProperty(key)) { //get data stored in key 
                             var value = data.Results[key];      //assign key data to value
@@ -114,51 +118,168 @@
                                     value = '';
                                 } else {
                                     console.log('Nested data found in property "' + key + '":', value);//this would just print the data to the console, a test
-                                    //console.log('trying the length...',Object.keys(value).length)
-                                    console.log("trying accessing....", value);
-                                    for(let i = 0; i < value.length; i++){
-                                        console.log(value[i])
-                                    }
+                
+                                    var totalfeats = value.length
                                     permval = value;
-                                    value = JSON.stringify(value, null, 2); //this value would theorietically hold the nested data I think edit: YES!!
+                                    value = JSON.stringify(value, null, 2); //this value would theorietically hold the nested data I think
                                 }
                             }
+
                             console.log("curr key: ",key);
                             // if key == ... filter out 
                             if(key != "Message" && key != "PermFeatures"){
                                 table += '<tr><th>' + key + '</th><td>' + value + '</td></tr>'; //this adds the values and keys to the table
                             }
                             if(key == "PermFeatures" && value != ''){
-                                for(let i = 0; i < permval.length; i++){
-                                    // console.log(permval[i])
-                                    for(pkey in permval[i]){
-                                        console.log("perm key: ", pkey);
-                                        featval = (permval[i])[pkey];
-                                        if(pkey != "Parameters"){
-                                            featval = JSON.stringify(featval, null, 2);
-                                            permfeats += '<tr><th>' + pkey + '</th><td>' + featval + '</td></tr>';
-                                        }
-                                        else{
-                                            // console.log("he")
-                                            for(let idx = 0; idx < featval.length;idx++){
-                                                console.log("feat key: ", featval[idx]);
-                                                for(prkey in featval[idx]){
-                                                    if(prkey != "DischargeMonitoringReports"){
-                                                        permfeats += '<tr><th>' + prkey + '</th><td>' + featval[idx][prkey] + '</td></tr>';
-                                                    }
-                                                }
-                                            }
-                                        }
+                                console.log(permval)
+                                const newTable = document.createElement('table');
+                                newTable.setAttribute("class","featureBox");
+                                newTable.setAttribute("id","dynTable");
+                                const table = document.body.appendChild(newTable);
+                                const thead = table.appendChild(document.createElement('thead'));
+                                const outtr = thead.appendChild(document.createElement('tr'));
+                                const columnTexts = Object.keys(permval[0]);
+
+                                columnTexts.forEach((columnText) => {
+                                    if(columnText != 'Parameters'){
+                                        outtr.appendChild(document.createElement('td'))
+                                        .textContent = columnText.replace('Perm','');
                                     }
-                                }
-                                document.getElementById('permFeatData').innerHTML = permfeats; 
-                            }
-                            
+                                });
+
+                                const tbody = table.appendChild(document.createElement('tbody'));
+                                let colsOnce = true;
+                                let twiceColsOnce = true;
+                                let DMRlen = 0;
+                                let PRMlen = 0;
+                                permval.forEach((item) => {
+                                
+                                    const tr = tbody.appendChild(document.createElement('tr'));
+                                    const values = Object.values(item);
+                                    values.forEach(value => {
+                                        console.log("curr value: ", value);
+                                        if (typeof value === 'object' && value !== null){
+                                            PRMlen = value.length;
+                                            console.log("COLS ONECE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: ", value);
+                                            if(colsOnce){
+                                                colsOnce = false;
+                                                const columnTexts = Object.keys(value[0]);
+
+                                                columnTexts.forEach((columnText) => {
+                                                    console.log("HERE: ",columnText);
+                                                    const excludedCols = ['DischargeMonitoringReports',"MonitoringLocationCode","StayTypeCode","StayTypeDesc"];
+                                                    if(!excludedCols.includes(columnText)){
+                                                        outtr.appendChild(document.createElement('td'))
+                                                        .textContent = columnText;
+                                                    }
+                                                });
+                                            }
+                                            
+                                            value.forEach((item) => {
+                                                console.log("COLS ONECE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: ", item);
+                                                delete item.MonitoringLocationCode;
+                                                delete item.StayTypeCode;
+                                                delete item.StayTypeDesc;
+                                                const itr = tbody.appendChild(document.createElement('tr'));
+                                                const values = Object.values(item);
+                                                // let DMRlen = 0;
+                                                values.forEach(value => {
+                                                    console.log("even inner value: ", value);
+                                                    if (typeof value === 'object' && value !== null){
+                                                        DMRlen = value.length;
+                                                        // itr.appendChild(document.createElement('td')).textContent = "OBJECT";
+                                                        const excludedCols = ["VersionNmbr",
+                                                                "DMRLimitValueUnitDesc",
+                                                                "DMREventId",
+                                                                "DMRFormValueId", 
+                                                                "DMRLimitTypeCodeDesc",
+                                                                "DMRLimitTypeDesc",
+                                                                "DMRValueId",
+                                                                "DaysLate",
+                                                                "ExceedencePct",
+                                                                "LimitId",
+                                                                "LimitSetId",
+                                                                "LimitSetScheduleId", "LimitTypeCode", "LimitUnitCode","LimitUnitDesc","DMRUnitCode",
+                                                                "LimitValueId","LimitValueNmbr","LimitValueQualifierCode","LimitValueStdUnits","LimitValueTypeCode",
+                                                                "LimitValueTypeDesc","NODICode","NODIDesc","NPDESViolations","NmbrOfSubmission","PermFeatureId",
+                                                                "StatisticalBaseCode","StatisticalBaseTypeCode","StayValueNmbr","StdUnitCode","StdUnitDesc",
+                                                                "ValueTypeCode",];
+                                                        console.log("COLS TWICE: ", twiceColsOnce);
+                                                        if(twiceColsOnce){
+                                                            twiceColsOnce = false;
+                                                            const columnTexts = Object.keys(value[0]);
+                                                            console.log("COOOOLs: ", columnTexts.length);
+                                                            columnTexts.forEach((columnText) => {
+                                                                console.log("HERE: ",columnText);
+                                                                if(!excludedCols.includes(columnText)){
+                                                                    outtr.appendChild(document.createElement('td'))
+                                                                    .textContent = columnText;
+                                                                }
+                                                                
+                                                            });
+                                                        }
+
+                                                        value.forEach((item) => {
+                                                            excludedCols.forEach(e => delete item[e]);
+                                                            const tr = tbody.appendChild(document.createElement('tr'));
+                                                            const values = Object.values(item);
+                                                            values.forEach(value => {
+                                                                tr.appendChild(document.createElement('td'))
+                                                                .textContent = value;
+                                                            });
+                                                        });
+                                                        
+                                                        // var obj = {a: 1, b: 2, c: 3, d: 4, e: 5 };
+
+                                                        // ['c', 'e'].forEach(e => delete obj[e]);
+
+                                                    }else if(value == null){
+                                                        itr.appendChild(document.createElement('td')).textContent = "NULL";
+                                                    }else{
+                                                        console.log("VAL FOR NEST: ", value);
+                                                        const anotherOne = document.createElement('td');
+                                                        anotherOne.setAttribute("rowspan",6);
+                                                        anotherOne.setAttribute("class","dmrFrames");
+                                                        itr.appendChild(anotherOne).textContent = value;
+                                                    }
+                                                   
+                                                });
+                                                console.log("***************************DMRLENNNNNNNNNNNNNNNNNNNNN_________: ",DMRlen);
+                                                const elements = document.querySelectorAll('.dmrFrames');
+                                                // console.log(typeof(elements[0]));
+                                                // elements.forEach(e => e.setAttribute("rowspan", 2));
+                                                for(let i = 0; i<elements.length;i++){
+                                                    elements[i].removeAttribute("rowspan");
+                                                    elements[i].setAttribute("rowspan",(DMRlen+1));
+                                                    // elements[i].rowspan = 2;
+                                                }
+
+                                            });
+                                        }else{
+                                            console.log("VAL FOR NEST: ", value);
+                                            const anotherOne = document.createElement('td');
+                                            // console.log("EHHHHHHHHHHHHHHHHHHHH: ", DMRlen);
+                                            anotherOne.setAttribute("rowspan",37);
+                                            anotherOne.setAttribute("class","featFrames");
+                                            tr.appendChild(anotherOne).textContent = value;
+                                        }
+                                    });
+                                    const elements = document.querySelectorAll('.featFrames');
+                                    // console.log(typeof(elements[0]));
+                                    // elements.forEach(e => e.setAttribute("rowspan", 2));
+                                    for(let i = 0; i<elements.length;i++){
+                                        elements[i].removeAttribute("rowspan");
+                                        elements[i].setAttribute("rowspan",((PRMlen)*(DMRlen+1)+1));
+                                        // elements[i].rowspan = 2;
+                                    }
+                                });
+                            }                        
                         }
                     }
                     table += '</table>';
 
                     document.getElementById('apiData').innerHTML = table;   //this put the table on the html doc
+                    
                 })
                 .catch(function(error) {        //handles any errors
                     console.error('Error:', error);
@@ -169,8 +290,8 @@
 
         document.getElementById('searchButton').addEventListener('click', search);  //these add the listeners for clicks,search button
 
-        document.getElementById('loadButton').addEventListener('click', function() {//these add the listeners for clicks,load all button
-            loadData();
+        document.getElementById('listButton').addEventListener('click', function() {//these add the listeners for clicks new button lists all facility names
+            loadData().then(listData);
         });
 
         document.getElementById('searchInput').addEventListener('keypress', function(e) {  //allows pressing enter to also search

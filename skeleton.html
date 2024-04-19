@@ -102,7 +102,9 @@
                 .then(function(dfrData) {
                     var jsonStr = dfrData.slice(9, -3);   //this removes the opening and closing text from the api response
                     var data = JSON.parse(jsonStr);    ///this converts the api response to a javascript object
-
+                    if(document.getElementById("dynTable") != null){
+                        document.getElementById("dynTable").remove();
+                    }
                     var table = '<table>';   //creates the new table
                     for (var key in data.Results) {   //for each key in the results         
                         if (data.Results.hasOwnProperty(key)) { //get data stored in key 
@@ -126,11 +128,14 @@
                             console.log("curr key: ",key);
                             // if key == ... filter out 
                             if(key != "Message" && key != "PermFeatures"){
-                                table += '<tr><th class="tableKey">' + key + '</th><td class="tableValue">' + value + '</td></tr>';                            }
+                                table += '<tr><th>' + key + '</th><td>' + value + '</td></tr>'; //this adds the values and keys to the table
+                            }
                             if(key == "PermFeatures" && value != ''){
                                 console.log(permval)
-                                const table = document.body.appendChild(document.createElement('table'));
-                                table.className= 'permFeaturesTable';
+                                const newTable = document.createElement('table');
+                                newTable.setAttribute("class","featureBox");
+                                newTable.setAttribute("id","dynTable");
+                                const table = document.body.appendChild(newTable);
                                 const thead = table.appendChild(document.createElement('thead'));
                                 const outtr = thead.appendChild(document.createElement('tr'));
                                 const columnTexts = Object.keys(permval[0]);
@@ -138,29 +143,32 @@
                                 columnTexts.forEach((columnText) => {
                                     if(columnText != 'Parameters'){
                                         outtr.appendChild(document.createElement('td'))
-                                        .textContent = columnText;
+                                        .textContent = columnText.replace('Perm','');
                                     }
                                 });
 
                                 const tbody = table.appendChild(document.createElement('tbody'));
                                 let colsOnce = true;
                                 let twiceColsOnce = true;
+                                let DMRlen = 0;
+                                let PRMlen = 0;
                                 permval.forEach((item) => {
+                                
                                     const tr = tbody.appendChild(document.createElement('tr'));
                                     const values = Object.values(item);
-                                    
                                     values.forEach(value => {
                                         console.log("curr value: ", value);
-                                        
                                         if (typeof value === 'object' && value !== null){
-                                            console.log("COLS ONECE: ", colsOnce);
+                                            PRMlen = value.length;
+                                            console.log("COLS ONECE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: ", value);
                                             if(colsOnce){
                                                 colsOnce = false;
                                                 const columnTexts = Object.keys(value[0]);
 
                                                 columnTexts.forEach((columnText) => {
                                                     console.log("HERE: ",columnText);
-                                                    if(columnText != 'DischargeMonitoringReports'){
+                                                    const excludedCols = ['DischargeMonitoringReports',"MonitoringLocationCode","StayTypeCode","StayTypeDesc"];
+                                                    if(!excludedCols.includes(columnText)){
                                                         outtr.appendChild(document.createElement('td'))
                                                         .textContent = columnText;
                                                     }
@@ -168,15 +176,34 @@
                                             }
                                             
                                             value.forEach((item) => {
+                                                console.log("COLS ONECE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: ", item);
+                                                delete item.MonitoringLocationCode;
+                                                delete item.StayTypeCode;
+                                                delete item.StayTypeDesc;
                                                 const itr = tbody.appendChild(document.createElement('tr'));
                                                 const values = Object.values(item);
-                                                
+                                                // let DMRlen = 0;
                                                 values.forEach(value => {
                                                     console.log("even inner value: ", value);
                                                     if (typeof value === 'object' && value !== null){
-
-                                                        itr.appendChild(document.createElement('td')).textContent = "OBJECT";
-
+                                                        DMRlen = value.length;
+                                                        // itr.appendChild(document.createElement('td')).textContent = "OBJECT";
+                                                        const excludedCols = ["VersionNmbr",
+                                                                "DMRLimitValueUnitDesc",
+                                                                "DMREventId",
+                                                                "DMRFormValueId", 
+                                                                "DMRLimitTypeCodeDesc",
+                                                                "DMRLimitTypeDesc",
+                                                                "DMRValueId",
+                                                                "DaysLate",
+                                                                "ExceedencePct",
+                                                                "LimitId",
+                                                                "LimitSetId",
+                                                                "LimitSetScheduleId", "LimitTypeCode", "LimitUnitCode","LimitUnitDesc","DMRUnitCode",
+                                                                "LimitValueId","LimitValueNmbr","LimitValueQualifierCode","LimitValueStdUnits","LimitValueTypeCode",
+                                                                "LimitValueTypeDesc","NODICode","NODIDesc","NPDESViolations","NmbrOfSubmission","PermFeatureId",
+                                                                "StatisticalBaseCode","StatisticalBaseTypeCode","StayValueNmbr","StdUnitCode","StdUnitDesc",
+                                                                "ValueTypeCode","StatisticalBaseTypeDesc"];
                                                         console.log("COLS TWICE: ", twiceColsOnce);
                                                         if(twiceColsOnce){
                                                             twiceColsOnce = false;
@@ -184,65 +211,67 @@
                                                             console.log("COOOOLs: ", columnTexts.length);
                                                             columnTexts.forEach((columnText) => {
                                                                 console.log("HERE: ",columnText);
-                                                                outtr.appendChild(document.createElement('td'))
+                                                                if(!excludedCols.includes(columnText)){
+                                                                    outtr.appendChild(document.createElement('td'))
                                                                     .textContent = columnText;
+                                                                }
+                                                                
                                                             });
                                                         }
 
-                                                        // value.forEach((item) => {
-                                                        //     const closer = itr.appendChild(document.createElement('tr'));
-                                                        //     const values = Object.values(item);
-                                                        //     values.forEach(value => {
-                                                        //         if (typeof value === 'object' && value !== null){
-                                                        //             closer.appendChild(document.createElement('td')).textContent = "OBJECT";
-                                                        //         }else if(value == null){
-                                                        //             closer.appendChild(document.createElement('td')).textContent = "NULL";
-                                                        //         }else{
-                                                        //             closer.appendChild(document.createElement('td')).textContent = value;
+                                                        value.forEach((item) => {
+                                                            excludedCols.forEach(e => delete item[e]);
+                                                            const tr = tbody.appendChild(document.createElement('tr'));
+                                                            const values = Object.values(item);
+                                                            values.forEach(value => {
+                                                                tr.appendChild(document.createElement('td'))
+                                                                .textContent = value;
+                                                            });
+                                                        });
+                                                        
+                                                        // var obj = {a: 1, b: 2, c: 3, d: 4, e: 5 };
 
-                                                        //         }
-                                                            
-                                                        //     });
-                                                        // });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                                                        // ['c', 'e'].forEach(e => delete obj[e]);
 
                                                     }else if(value == null){
                                                         itr.appendChild(document.createElement('td')).textContent = "NULL";
                                                     }else{
                                                         console.log("VAL FOR NEST: ", value);
                                                         const anotherOne = document.createElement('td');
-                                                        // anotherOne.setAttribute("rowspan",5);
+                                                        anotherOne.setAttribute("rowspan",6);
+                                                        anotherOne.setAttribute("class","dmrFrames");
                                                         itr.appendChild(anotherOne).textContent = value;
                                                     }
                                                    
                                                 });
+                                                console.log("***************************DMRLENNNNNNNNNNNNNNNNNNNNN_________: ",DMRlen);
+                                                const elements = document.querySelectorAll('.dmrFrames');
+                                                // console.log(typeof(elements[0]));
+                                                // elements.forEach(e => e.setAttribute("rowspan", 2));
+                                                for(let i = 0; i<elements.length;i++){
+                                                    elements[i].removeAttribute("rowspan");
+                                                    elements[i].setAttribute("rowspan",(DMRlen+1));
+                                                    // elements[i].rowspan = 2;
+                                                }
+
                                             });
                                         }else{
                                             console.log("VAL FOR NEST: ", value);
                                             const anotherOne = document.createElement('td');
-                                            anotherOne.setAttribute("rowspan",7);
+                                            // console.log("EHHHHHHHHHHHHHHHHHHHH: ", DMRlen);
+                                            anotherOne.setAttribute("rowspan",37);
+                                            anotherOne.setAttribute("class","featFrames");
                                             tr.appendChild(anotherOne).textContent = value;
                                         }
                                     });
+                                    const elements = document.querySelectorAll('.featFrames');
+                                    // console.log(typeof(elements[0]));
+                                    // elements.forEach(e => e.setAttribute("rowspan", 2));
+                                    for(let i = 0; i<elements.length;i++){
+                                        elements[i].removeAttribute("rowspan");
+                                        elements[i].setAttribute("rowspan",((PRMlen)*(DMRlen+1)+1));
+                                        // elements[i].rowspan = 2;
+                                    }
                                 });
                             }                        
                         }
@@ -250,6 +279,7 @@
                     table += '</table>';
 
                     document.getElementById('apiData').innerHTML = table;   //this put the table on the html doc
+                    
                 })
                 .catch(function(error) {        //handles any errors
                     console.error('Error:', error);

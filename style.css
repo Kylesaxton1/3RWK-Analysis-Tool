@@ -12,6 +12,7 @@ h1 {
 body{
     background-color:lightblue;
     font-size: smaller;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
 }
 button {
     background-color:rgb(34, 34, 106);
@@ -27,11 +28,10 @@ button {
     margin: 0 auto; 
     
 }
-/* .featureBox{
-    float: right;
-    border: 5px solid;
+.featureBox td{
+    border: 1px solid;
 
-} */
+}
 #apiData {
     border: 10px solid white;
     font-size: 20px;
